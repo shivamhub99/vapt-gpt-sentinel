@@ -1,0 +1,25 @@
+# Scope configuration: Defines boundaries for ScopeGuard
+# Any scan target outside of these definitions will be strictly rejected.
+scope:
+  name: "sentinel-lab-scope"
+  version: "1.0"
+  allowlist:
+    hostnames:
+      - "localhost"
+      - "127.0.0.1"
+      - "sentinel-lab-app"
+      - "dvwa"
+      - "juice-shop"
+    cidrs:
+      - "127.0.0.1/32"
+      - "172.16.0.0/12"   # Standard Docker container network bridge
+      - "192.168.0.0/16"  # Local isolated lab networks
+      - "10.0.0.0/8"
+    ports:
+      - 80
+      - 443
+      - 5000
+      - 8080
+      - 8081
+      - 8082
+      - 3000

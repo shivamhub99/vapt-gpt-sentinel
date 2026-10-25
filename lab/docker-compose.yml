@@ -1,0 +1,45 @@
+services:
+
+  sentinel-lab-app:
+    build:
+      context: ./sentinel-lab-app
+      dockerfile: Dockerfile
+    container_name: sentinel-lab-app
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - FLASK_ENV=production
+    networks:
+      sentinel-net:
+        ipv4_address: 172.28.0.10
+    restart: unless-stopped
+
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: sentinel-dvwa
+    ports:
+      - "8081:80"
+    environment:
+      - PHP_IDE_CONFIG=serverName=dvwa
+    networks:
+      sentinel-net:
+        ipv4_address: 172.28.0.20
+    restart: unless-stopped
+
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: sentinel-juice-shop
+    ports:
+      - "8082:3000"
+    networks:
+      sentinel-net:
+        ipv4_address: 172.28.0.30
+    restart: unless-stopped
+
+networks:
+  sentinel-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

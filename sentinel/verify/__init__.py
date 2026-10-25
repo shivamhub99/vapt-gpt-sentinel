@@ -1,0 +1,1 @@
+"""sentinel/verify package initialization."""

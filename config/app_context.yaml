@@ -1,0 +1,31 @@
+# Application context definitions for sentinel-lab-app
+application:
+  name: "sentinel-lab-app"
+  description: "E-commerce demonstration lab target with planted security findings"
+  environment: "isolated-lab"
+  internet_facing: true
+  critical_assets:
+    - "database/lab.db"
+    - "admin_account"
+    - "orders_ledger"
+  endpoints:
+    - path: "/api/search"
+      auth_required: false
+      data_sensitivity: "public"
+      method: "GET"
+    - path: "/api/greet"
+      auth_required: false
+      data_sensitivity: "public"
+      method: "GET"
+    - path: "/api/orders"
+      auth_required: true
+      data_sensitivity: "confidential"
+      method: "GET"
+    - path: "/api/orders/<id>"
+      auth_required: true
+      data_sensitivity: "confidential"
+      method: "GET"
+    - path: "/api/validate-key"
+      auth_required: true
+      data_sensitivity: "restricted"
+      method: "POST"

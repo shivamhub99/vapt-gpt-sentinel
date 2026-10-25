@@ -1,0 +1,1 @@
+"""tests/safety package initialization."""

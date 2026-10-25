@@ -1,0 +1,22 @@
+# Sentinel Global Framework Settings
+framework:
+  name: "VAPT-GPT Sentinel"
+  version: "0.1.0"
+  safe_mode: true
+  max_retry_attempts: 3
+  timeout_seconds: 300
+
+storage:
+  runs_dir: "runs"
+  audit_log: "runs/audit_log.jsonl"
+  db_path: "runs/sentinel.db"
+
+scanners:
+  nmap:
+    safe_flags: ["-sV", "-T4", "--script=banner"]
+  zap:
+    mode: "baseline"
+  bandit:
+    level: "low"
+  semgrep:
+    config: "p/owasp-top-ten"
