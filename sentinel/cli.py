@@ -196,6 +196,96 @@ def findings(
 
 
 @app.command()
+def prioritize(
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        "-r",
+        help="Run ID to prioritize findings for (defaults to latest recorded run)",
+    ),
+) -> None:
+    """Prioritizes findings comparing baseline CVSS vs contextual risk formula (RQ1)."""
+    from sentinel.core.database import db
+    from sentinel.reasoning.prioritizer import prioritizer
+
+    conn = db.get_connection()
+    cursor = conn.cursor()
+
+    if not run_id:
+        cursor.execute("SELECT run_id FROM runs ORDER BY timestamp DESC LIMIT 1")
+        row = cursor.fetchone()
+        if not row:
+            console.print("[yellow]No scan runs recorded in database yet.[/yellow]")
+            return
+        target_run_id = row["run_id"]
+    else:
+        target_run_id = run_id
+
+    findings_list = db.get_findings_by_run(target_run_id)
+    if not findings_list:
+        console.print(f"[yellow]No findings found for run '{target_run_id}'.[/yellow]")
+        return
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Research Question 1 (RQ1): Contextual Risk Prioritization[/bold cyan]\n"
+            f"[bold]Run ID:[/bold] {target_run_id} | [bold]Total Findings:[/bold] {len(findings_list)}",
+            border_style="cyan",
+        )
+    )
+
+    # 1. Baseline CVSS ranking
+    baseline_ranked = prioritizer.rank_baseline_cvss(findings_list)
+    baseline_ranks = {f.id: idx + 1 for idx, (f, _) in enumerate(baseline_ranked)}
+
+    # 2. Contextual ranking
+    context_ranked = prioritizer.rank_contextual(findings_list)
+
+    table = Table(
+        title="Prioritization Comparison: Baseline CVSS vs Sentinel Contextual Score",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Context Rank", style="bold green", justify="center")
+    table.add_column("CVSS Rank", style="dim", justify="center")
+    table.add_column("CWE", style="bold yellow")
+    table.add_column("Title")
+    table.add_column("CVSS Base", justify="right")
+    table.add_column("Context Risk (0-100)", style="bold red", justify="right")
+    table.add_column("Exposure Context", style="cyan")
+
+    for c_rank, (f, score) in enumerate(context_ranked, start=1):
+        b_rank = baseline_ranks.get(f.id, "N/A")
+        factors = score.context_factors
+        exposure_desc = (
+            f"{factors.data_sensitivity} | {'public' if factors.internet_facing else 'internal'}"
+        )
+        table.add_row(
+            f"#{c_rank}",
+            f"#{b_rank}",
+            f.cwe,
+            f.title[:38] + ("..." if len(f.title) > 38 else ""),
+            f"{score.base_score:.1f}",
+            f"{score.final_score:.1f}",
+            exposure_desc,
+        )
+
+    console.print(table)
+
+    # Print top explanation
+    if context_ranked:
+        top_f, top_score = context_ranked[0]
+        console.print(
+            Panel(
+                f"[bold yellow]Top Threat Analysis (Finding {top_f.id}):[/bold yellow]\n"
+                f"{top_score.explanation}",
+                title="LLM Qualitative Threat Explanation (Deterministic Score Grounding)",
+                border_style="yellow",
+            )
+        )
+
+
+@app.command()
 def status() -> None:
     """Displays framework status, scope boundaries, and running lab targets."""
     import os
