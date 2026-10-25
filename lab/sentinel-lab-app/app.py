@@ -120,10 +120,136 @@ def apply_headers(response: Response) -> Response:
     return response
 
 
+@app.route("/", methods=["GET"])
+def index() -> Response:
+    """Interactive landing page for sentinel-lab-app."""
+    html_page = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel Lab App</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --primary: #38bdf8;
+            --accent: #818cf8;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #f43f5e;
+            --success: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 2rem; display: flex; justify-content: center; }
+        .container { max-width: 900px; width: 100%; }
+        header { text-align: center; margin-bottom: 2.5rem; }
+        h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 0.5rem; }
+        p.subtitle { color: var(--text-muted); font-size: 1.1rem; }
+        .badge { display: inline-block; background: rgba(56, 189, 248, 0.15); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card h2 { font-size: 1.3rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+        .card p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; }
+        .input-group { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+        input[type="text"] { flex: 1; padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: #0b1120; color: #fff; font-size: 0.95rem; }
+        input[type="text"]:focus { outline: none; border-color: var(--primary); }
+        button, a.btn { padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 0.95rem; font-weight: 500; cursor: pointer; text-decoration: none; border: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-primary { background: var(--primary); color: #0b1120; font-weight: 600; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: #475569; }
+        .quick-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .quick-link { font-size: 0.85rem; padding: 0.25rem 0.6rem; border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); }
+        .quick-link:hover { color: var(--primary); border-color: var(--primary); }
+        .quick-link.vuln { color: #fda4af; border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1); }
+        .quick-link.vuln:hover { border-color: var(--danger); }
+        .api-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
+        .api-item { background: #0b1120; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid var(--border); text-decoration: none; color: var(--text); display: block; }
+        .api-item:hover { border-color: var(--accent); }
+        .api-item .method { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Sentinel Lab Target Application</h1>
+            <p class="subtitle">Controlled testbed application for defensive closed-loop vulnerability remediation research</p>
+            <span class="badge">Running in Isolated Docker Network (Port 8080)</span>
+        </header>
+
+        <!-- Product Search (SQLi test) -->
+        <div class="card">
+            <h2>
+                <span>🔍 Product Catalog Search</span>
+                <span style="font-size: 0.8rem; color: #f43f5e;">CWE-89 Lab Target</span>
+            </h2>
+            <p>Query the internal SQLite database for products.</p>
+            <form action="/api/search" method="GET" class="input-group">
+                <input type="text" name="q" placeholder="Search keyword (e.g., Laptop)..." value="Laptop">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+            <div class="quick-links">
+                <span style="font-size: 0.85rem; color: var(--text-muted); align-self: center;">Test queries:</span>
+                <a class="quick-link" href="/api/search?q=Laptop">q=Laptop (Normal)</a>
+                <a class="quick-link" href="/api/search?q=Mouse">q=Mouse (Normal)</a>
+                <a class="quick-link vuln" href="/api/search?q=' OR 1=1 --">q=' OR 1=1 -- (Planted SQLi)</a>
+            </div>
+        </div>
+
+        <!-- User Greeting (XSS test) -->
+        <div class="card">
+            <h2>
+                <span>💬 User Greeting</span>
+                <span style="font-size: 0.8rem; color: #f43f5e;">CWE-79 Lab Target</span>
+            </h2>
+            <p>Generates a dynamic user welcome response.</p>
+            <form action="/api/greet" method="GET" class="input-group">
+                <input type="text" name="name" placeholder="Enter username..." value="Alice">
+                <button type="submit" class="btn btn-primary">Greet</button>
+            </form>
+            <div class="quick-links">
+                <span style="font-size: 0.85rem; color: var(--text-muted); align-self: center;">Test inputs:</span>
+                <a class="quick-link" href="/api/greet?name=Alice">name=Alice (Normal)</a>
+                <a class="quick-link vuln" href="/api/greet?name=%3Ch1%3EHacked%3C/h1%3E">name=&lt;h1&gt;Hacked&lt;/h1&gt; (Planted XSS)</a>
+            </div>
+        </div>
+
+        <!-- Orders & IDOR -->
+        <div class="card">
+            <h2>
+                <span>📦 Customer Orders</span>
+                <span style="font-size: 0.8rem; color: #f43f5e;">CWE-639 Lab Target</span>
+            </h2>
+            <p>Inspect order records by ID.</p>
+            <div class="quick-links">
+                <a class="quick-link" href="/api/orders/1">Order #1 (Alice's Order)</a>
+                <a class="quick-link vuln" href="/api/orders/2">Order #2 (Bob's Order - IDOR Access)</a>
+            </div>
+        </div>
+
+        <!-- Direct API Endpoints -->
+        <div class="card">
+            <h2><span>⚡ Raw API Endpoints</span></h2>
+            <div class="api-list">
+                <a class="api-item" href="/api/health"><span class="method">GET</span>/api/health</a>
+                <a class="api-item" href="/api/products"><span class="method">GET</span>/api/products</a>
+                <a class="api-item" href="/api/orders/1"><span class="method">GET</span>/api/orders/1</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    return Response(html_page, mimetype="text/html")
+
+
 @app.route("/api/health", methods=["GET"])
 def healthcheck() -> Response:
     """Basic healthcheck endpoint for readiness probes."""
     return jsonify({"status": "healthy", "app": "sentinel-lab-app", "version": "1.0.0"})
+
 
 
 @app.route("/api/products", methods=["GET"])

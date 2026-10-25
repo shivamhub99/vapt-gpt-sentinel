@@ -28,9 +28,17 @@ def test_client():
         yield client
 
 
+def test_index_page(test_client):
+    """Verifies that the root landing page renders successfully."""
+    response = test_client.get("/")
+    assert response.status_code == 200
+    assert "Sentinel Lab Target Application" in response.get_data(as_text=True)
+
+
 def test_healthcheck(test_client):
     """Verifies that the service health probe responds with 200 OK."""
     response = test_client.get("/api/health")
+
     assert response.status_code == 200
     data = response.get_json()
     assert data["status"] == "healthy"
