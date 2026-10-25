@@ -251,7 +251,6 @@ def healthcheck() -> Response:
     return jsonify({"status": "healthy", "app": "sentinel-lab-app", "version": "1.0.0"})
 
 
-
 @app.route("/api/products", methods=["GET"])
 def list_products() -> Response:
     """Returns catalog of products."""
