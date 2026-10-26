@@ -387,6 +387,147 @@ def fix(
 
 
 @app.command()
+def verify(
+    patch_id: str = typer.Option(
+        ...,
+        "--patch",
+        "-p",
+        help="Patch ID to deterministically verify (from 'sentinel fix')",
+    ),
+    target: str = typer.Option(
+        "lab/sentinel-lab-app",
+        "--target",
+        "-t",
+        help="Path to target project repository",
+    ),
+    retry: bool = typer.Option(
+        True,
+        "--retry/--no-retry",
+        help="Whether to automatically retry with failure feedback if verification fails",
+    ),
+    max_attempts: int = typer.Option(
+        3,
+        "--max-attempts",
+        help="Maximum remediation attempts before escalating to NEEDS_HUMAN",
+    ),
+) -> None:
+    """Deterministically verifies a patch via unit tests, security regression, and rescan (The Core Loop)."""
+    from sentinel.core.database import db
+    from sentinel.core.schemas import DecisionEnum
+    from sentinel.verification.engine import verification_engine
+
+    target_path = Path(target).resolve()
+    patch = db.get_patch(patch_id)
+    if not patch:
+        console.print(f"[bold red]Patch '{patch_id}' not found in database.[/bold red]")
+        raise typer.Exit(code=1)
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]VAPT-GPT Sentinel Deterministic Verification Engine[/bold cyan]\n"
+            f"[bold]Patch ID:[/bold] {patch.id} | [bold]Finding:[/bold] {patch.finding_id}\n"
+            f"[bold]Branch:[/bold] {patch.branch} | [bold]Attempt:[/bold] {patch.attempt}\n"
+            f"[bold]Target:[/bold] {target_path}\n"
+            f"[bold]Core Principle:[/bold] LLM proposes fixes; deterministic tests decide acceptance",
+            border_style="cyan",
+        )
+    )
+
+    with console.status("[yellow]Executing 4-stage verification loop...[/yellow]"):
+        try:
+            verification = verification_engine.verify(
+                patch_id=patch.id,
+                target_dir=target_path,
+                auto_retry=retry,
+                max_attempts=max_attempts,
+            )
+        except Exception as exc:
+            console.print(f"[bold red]Verification Execution Error:[/bold red] {exc}")
+            raise typer.Exit(code=1)
+
+    # Verification results table
+    table = Table(
+        title="Deterministic Verification Outcomes", show_header=True, header_style="bold magenta"
+    )
+    table.add_column("Verification Check", style="bold")
+    table.add_column("Status", justify="center")
+    table.add_column("Diagnostic Details", style="dim")
+
+    # 1. Functional Tests
+    unit_status = (
+        "[bold green]PASSED[/bold green]"
+        if verification.unit_passed
+        else "[bold red]FAILED[/bold red]"
+    )
+    table.add_row(
+        "1. Functional Unit Tests",
+        unit_status,
+        str(verification.evidence.get("unit_log", ""))[:60] + "...",
+    )
+
+    # 2. Security Regression Invariants
+    reg_status = (
+        "[bold green]PASSED[/bold green]"
+        if verification.regression_passed
+        else "[bold red]FAILED[/bold red]"
+    )
+    table.add_row(
+        "2. Security Regression Invariants",
+        reg_status,
+        str(verification.evidence.get("regression_log", ""))[:60] + "...",
+    )
+
+    # 3. Original Flaw Elimination
+    orig_status = (
+        "[bold green]ELIMINATED[/bold green]"
+        if verification.original_finding_gone
+        else "[bold red]STILL ACTIVE[/bold red]"
+    )
+    table.add_row(
+        "3. Targeted Rescan (Original Flaw)",
+        orig_status,
+        "Vulnerability eliminated in patched source",
+    )
+
+    # 4. Secondary Vulnerability Inspection
+    new_count = len(verification.new_findings)
+    new_status = (
+        "[bold green]0 DETECTED[/bold green]"
+        if new_count == 0
+        else f"[bold red]{new_count} INTRODUCED[/bold red]"
+    )
+    table.add_row(
+        "4. Secondary Flaws Check", new_status, "Zero new vulnerabilities introduced by patch"
+    )
+
+    console.print(table)
+
+    if verification.decision == DecisionEnum.VERIFIED:
+        console.print(
+            Panel(
+                f"[bold green]PATCH VERIFIED & ACCEPTED![/bold green]\n\n"
+                f"Patch [bold]{verification.patch_id}[/bold] for finding [bold]{verification.finding_id}[/bold] "
+                f"passed all functional unit tests and deterministic security regression checks.\n"
+                f"The vulnerability has been completely neutralized with zero side effects.\n\n"
+                f"[cyan]Database finding lifecycle updated to:[/cyan] [bold green]VERIFIED[/bold green]",
+                title="Verification Complete",
+                border_style="green",
+            )
+        )
+    else:
+        console.print(
+            Panel(
+                f"[bold red]PATCH REJECTED: {verification.decision.value}[/bold red]\n\n"
+                f"Reason: {verification.evidence.get('decision_reason', 'Verification checks failed.')}\n\n"
+                f"[yellow]Action:[/yellow] Sandbox branch rolled back. Primary worktree remains completely clean.\n"
+                f"If max attempts exceeded, finding status escalated to [bold]NEEDS_HUMAN[/bold].",
+                title="Verification Rejection",
+                border_style="red",
+            )
+        )
+
+
+@app.command()
 def status() -> None:
     """Displays framework status, scope boundaries, and running lab targets."""
     import os

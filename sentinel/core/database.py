@@ -9,7 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from sentinel.core.schemas import Finding, FindingStatus, Severity
+from sentinel.core.schemas import (
+    DecisionEnum,
+    Finding,
+    FindingStatus,
+    Patch,
+    Severity,
+    Verification,
+)
 from sentinel.core.settings import settings
 
 
@@ -231,6 +238,105 @@ class Database:
         updated = cursor.rowcount > 0
         conn.close()
         return updated
+
+    def get_patch(self, patch_id: str) -> Optional[Patch]:
+        """Retrieves a specific patch by ID."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM patches WHERE id = ?", (patch_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        return Patch(
+            id=row["id"],
+            finding_id=row["finding_id"],
+            diff=row["diff"],
+            branch=row["branch"],
+            rationale=row["rationale"] or "",
+            attempt=row["attempt"],
+            generated_by=row["generated_by"],
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+        )
+
+    def get_patches_by_finding(self, finding_id: str) -> List[Patch]:
+        """Retrieves all patches generated for a finding, ordered by attempt."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM patches WHERE finding_id = ? ORDER BY attempt ASC", (finding_id,)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+        return [
+            Patch(
+                id=r["id"],
+                finding_id=r["finding_id"],
+                diff=r["diff"],
+                branch=r["branch"],
+                rationale=r["rationale"] or "",
+                attempt=r["attempt"],
+                generated_by=r["generated_by"],
+                timestamp=datetime.fromisoformat(r["timestamp"]),
+            )
+            for r in rows
+        ]
+
+    def save_verification(self, v: Verification) -> None:
+        """Persists a patch verification record."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        evidence_payload = {
+            "evidence": v.evidence,
+            "new_findings": [f.model_dump(mode="json") for f in v.new_findings],
+        }
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO verifications (
+                patch_id, finding_id, unit_passed, regression_passed,
+                original_finding_gone, decision, evidence_json, timestamp
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                v.patch_id,
+                v.finding_id,
+                1 if v.unit_passed else 0,
+                1 if v.regression_passed else 0,
+                1 if v.original_finding_gone else 0,
+                v.decision.value,
+                json.dumps(evidence_payload),
+                v.timestamp.isoformat(),
+            ),
+        )
+        conn.commit()
+        conn.close()
+
+    def get_verification(self, patch_id: str) -> Optional[Verification]:
+        """Retrieves a verification record by patch ID."""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM verifications WHERE patch_id = ?", (patch_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+
+        evidence_payload = json.loads(row["evidence_json"]) if row["evidence_json"] else {}
+        evidence = evidence_payload.get("evidence", {})
+        raw_new_findings = evidence_payload.get("new_findings", [])
+        new_findings = [Finding.model_validate(f) for f in raw_new_findings]
+
+        return Verification(
+            patch_id=row["patch_id"],
+            finding_id=row["finding_id"],
+            unit_passed=bool(row["unit_passed"]),
+            regression_passed=bool(row["regression_passed"]),
+            original_finding_gone=bool(row["original_finding_gone"]),
+            new_findings=new_findings,
+            decision=DecisionEnum(row["decision"]),
+            evidence=evidence,
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+        )
 
 
 db = Database()
