@@ -361,79 +361,175 @@ class SecurityReporter:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VAPT-GPT Sentinel Security Audit Report</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
         :root {{
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent-cyan: #06b6d4;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-yellow: #f59e0b;
-            --border-color: #334155;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-card: #0e0e0e;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent-green: #00ff41;
+            --accent-green-hover: #33ff66;
+            --accent-red: #ff3344;
+            --accent-yellow: #ffaa00;
+            --accent-cyan: #00e5ff;
+            --border-color: rgba(0, 255, 65, 0.22);
+            --border-hover: rgba(0, 255, 65, 0.5);
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
+        }}
+        html {{
+            scroll-behavior: smooth;
+        }}
+        ::-webkit-scrollbar {{
+            width: 8px;
+            height: 8px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: #0a0a0a;
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(0, 255, 65, 0.3);
+            border-radius: 4px;
+            border: 2px solid #0a0a0a;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
         }}
         body {{
             background-color: var(--bg-primary);
             color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: var(--font-sans);
             margin: 0;
-            padding: 30px;
+            padding: 36px 24px;
             line-height: 1.6;
         }}
         .container {{
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
         }}
-        .header {{
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        .terminal-window {{
+            background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 28px;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 28px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 255, 65, 0.08);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }}
+        .terminal-window:hover {{
+            border-color: var(--border-hover);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 255, 65, 0.15);
+        }}
+        .terminal-topbar {{
+            background: #050505;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }}
+        .terminal-cmd {{
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .prompt-user {{ color: var(--accent-green); font-weight: 700; }}
+        .prompt-path {{ color: #38bdf8; }}
+        .terminal-controls {{ display: flex; gap: 8px; }}
+        .t-btn {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(0, 255, 65, 0.35);
+            border-radius: 3px;
+            color: var(--accent-green);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: rgba(0, 255, 65, 0.05);
+        }}
+        .header {{
+            padding: 26px 28px;
+            background: linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
         }}
         .header h1 {{
             margin: 0 0 10px 0;
             font-size: 26px;
-            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+            font-weight: 800;
+            color: var(--accent-green);
+            text-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+            letter-spacing: -0.01em;
         }}
         .kpi-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 16px;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
         }}
         .kpi-card {{
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: 6px;
             padding: 20px;
             text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.25s ease;
+        }}
+        .kpi-card:hover {{
+            border-color: var(--border-hover);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 65, 0.15);
+            transform: translateY(-2px);
+        }}
+        .kpi-label {{
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
         }}
         .kpi-value {{
+            font-family: var(--font-mono);
             font-size: 32px;
-            font-weight: bold;
+            font-weight: 800;
             margin: 8px 0;
+            letter-spacing: -0.02em;
         }}
         .card {{
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border-radius: 6px;
             padding: 24px;
             margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }}
         .card h2 {{
             margin-top: 0;
-            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+            color: var(--accent-green);
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            font-size: 20px;
+            padding-bottom: 12px;
+            font-size: 18px;
+            letter-spacing: -0.01em;
+        }}
+        .table-responsive {{
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }}
         table {{
             width: 100%;
             border-collapse: collapse;
             margin-top: 12px;
+            font-size: 13.5px;
         }}
         th, td {{
             text-align: left;
@@ -441,50 +537,70 @@ class SecurityReporter:
             border-bottom: 1px solid var(--border-color);
         }}
         th {{
-            background-color: #0b1120;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 13px;
+            background-color: #050505;
+            color: var(--accent-green);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.06em;
+        }}
+        tbody tr:hover {{
+            background-color: rgba(0, 255, 65, 0.03);
         }}
         code {{
-            background: #0b1120;
+            background: #050505;
             padding: 3px 6px;
             border-radius: 4px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 13px;
-            color: #38bdf8;
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--accent-green);
         }}
         .badge {{
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 3px 9px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.06em;
         }}
-        .badge-critical {{ background: #991b1b; color: #fecaca; }}
-        .badge-high {{ background: #c2410c; color: #ffedd5; }}
-        .badge-medium {{ background: #b45309; color: #fef3c7; }}
-        .badge-low {{ background: #1e3a8a; color: #dbeafe; }}
-        .badge-success {{ background: #065f46; color: #a7f3d0; }}
-        .badge-danger {{ background: #991b1b; color: #fecaca; }}
-        .badge-info {{ background: #0369a1; color: #e0f2fe; }}
+        .badge-critical {{ background: rgba(255, 51, 68, 0.12); color: #ff3344; border: 1px solid rgba(255, 51, 68, 0.4); }}
+        .badge-high {{ background: rgba(255, 170, 0, 0.12); color: #ffaa00; border: 1px solid rgba(255, 170, 0, 0.4); }}
+        .badge-medium {{ background: rgba(255, 215, 0, 0.12); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.4); }}
+        .badge-low {{ background: rgba(0, 229, 255, 0.12); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.4); }}
+        .badge-success {{ background: rgba(0, 255, 65, 0.12); color: var(--accent-green); border: 1px solid var(--accent-green); }}
+        .badge-danger {{ background: rgba(255, 51, 68, 0.12); color: #ff3344; border: 1px solid rgba(255, 51, 68, 0.4); }}
+        .badge-info {{ background: rgba(0, 229, 255, 0.12); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.4); }}
         .text-muted {{ color: var(--text-secondary); font-size: 12px; }}
-        .text-danger {{ color: var(--accent-red); }}
-        .text-success {{ color: var(--accent-green); }}
+        .text-danger {{ color: var(--accent-red) !important; }}
+        .text-success {{ color: var(--accent-green) !important; }}
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🛡️ VAPT-GPT Sentinel: Defensive Security & Remediation Report</h1>
-            <p style="margin: 0; color: var(--text-secondary);">
-                <strong>Run ID:</strong> <code>{html.escape(data["run_id"])}</code> |
-                <strong>Generated:</strong> {html.escape(data["generated_at"])} |
-                <strong>Audit Integrity:</strong> {audit_badge}
-            </p>
+        <div class="terminal-window">
+            <div class="terminal-topbar">
+                <div class="terminal-cmd">
+                    <span class="prompt-user">sentinel@audit-workstation</span>:<span class="prompt-path">~/reports</span>$
+                    <span>./sentinel-reporter --format=html --verified</span>
+                </div>
+                <div class="terminal-controls">
+                    <span class="t-btn">_</span>
+                    <span class="t-btn">□</span>
+                    <span class="t-btn">×</span>
+                </div>
+            </div>
+            <div class="header">
+                <h1>🛡️ VAPT-GPT Sentinel: Defensive Security & Remediation Report</h1>
+                <p style="margin: 0; color: var(--text-secondary); font-family: var(--font-mono); font-size: 13px;">
+                    <strong>Run ID:</strong> <code>{html.escape(data["run_id"])}</code> |
+                    <strong>Generated:</strong> {html.escape(data["generated_at"])} |
+                    <strong>Audit Integrity:</strong> {audit_badge}
+                </p>
+            </div>
         </div>
 
         <div class="kpi-grid">

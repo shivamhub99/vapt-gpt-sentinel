@@ -29,57 +29,385 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        /* Modern Glassmorphic Dark Theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+        /* Hacker.House Dark Terminal Theme Root Tokens */
+        :root {
+            --hh-bg: #0a0a0a;
+            --hh-bg-surface: #111111;
+            --hh-bg-card: #0e0e0e;
+            --hh-primary: #00ff41;
+            --hh-primary-hover: #33ff66;
+            --hh-primary-glow: rgba(0, 255, 65, 0.25);
+            --hh-border: rgba(0, 255, 65, 0.22);
+            --hh-border-hover: rgba(0, 255, 65, 0.5);
+            --hh-text-main: #f3f4f6;
+            --hh-text-muted: #9ca3af;
+            --hh-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --hh-font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
+        }
+
+        /* Smooth Scrolling & Custom Hacker.House Scrollbar */
+        html {
+            scroll-behavior: smooth;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 65, 0.3);
+            border-radius: 4px;
+            border: 2px solid #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ff41;
+            box-shadow: 0 0 10px #00ff41;
+        }
+
+        /* Global Application Container */
         .stApp {
-            background-color: #0b0f19;
-            color: #f1f5f9;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--hh-bg) !important;
+            color: var(--hh-text-main) !important;
+            font-family: var(--hh-font-sans) !important;
         }
-        .main-header {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 1px solid #334155;
-            border-radius: 12px;
-            padding: 24px;
+
+        .block-container {
+            max-width: 1440px !important;
+            padding: 1.75rem 2.5rem 4rem 2.5rem !important;
+            margin: 0 auto !important;
+        }
+
+        /* Headings & Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--hh-font-mono) !important;
+            color: var(--hh-text-main) !important;
+            letter-spacing: -0.02em;
+        }
+
+        /* Terminal Window Frame Header */
+        .terminal-window {
+            background: var(--hh-bg-surface);
+            border: 1px solid var(--hh-border);
+            border-radius: 8px;
             margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 255, 65, 0.08);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .metric-card {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 10px;
-            padding: 18px;
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        .terminal-window:hover {
+            border-color: var(--hh-border-hover);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 255, 65, 0.15);
         }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 6px;
+        .terminal-topbar {
+            background: #050505;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--hh-border);
+            font-family: var(--hh-font-mono);
             font-size: 12px;
+        }
+        .terminal-cmd {
+            color: var(--hh-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .terminal-cmd .prompt-user {
+            color: var(--hh-primary);
             font-weight: 700;
+        }
+        .terminal-cmd .prompt-path {
+            color: #38bdf8;
+        }
+        .terminal-cmd .cursor-blink {
+            display: inline-block;
+            width: 7px;
+            height: 14px;
+            background: var(--hh-primary);
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+        .t-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(0, 255, 65, 0.35);
+            border-radius: 3px;
+            color: var(--hh-primary);
+            font-family: var(--hh-font-mono);
+            font-size: 11px;
+            line-height: 1;
+            user-select: none;
+            background: rgba(0, 255, 65, 0.05);
+        }
+        .main-header-content {
+            padding: 24px 28px;
+            background: linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
+        }
+        .header-title {
+            margin: 0;
+            color: var(--hh-primary);
+            font-family: var(--hh-font-mono);
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+        }
+        .badge-live {
+            background: rgba(0, 255, 65, 0.15);
+            color: var(--hh-primary);
+            border: 1px solid var(--hh-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
-        .badge-critical { background: #991b1b; color: #fee2e2; }
-        .badge-high { background: #c2410c; color: #ffedd5; }
-        .badge-medium { background: #b45309; color: #fef3c7; }
-        .badge-low { background: #1e3a8a; color: #dbeafe; }
-        .badge-verified { background: #065f46; color: #a7f3d0; }
-        .badge-rejected { background: #881337; color: #fecdd3; }
+        .header-subtitle {
+            margin: 8px 0 0 0;
+            color: var(--hh-text-muted);
+            font-size: 14px;
+            font-family: var(--hh-font-sans);
+            line-height: 1.5;
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background: var(--hh-bg-card);
+            border: 1px solid var(--hh-border);
+            border-radius: 6px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        .metric-card:hover {
+            border-color: var(--hh-border-hover);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 65, 0.15);
+            transform: translateY(-2px);
+        }
+        .metric-label {
+            font-family: var(--hh-font-mono);
+            color: var(--hh-text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .metric-value {
+            font-family: var(--hh-font-mono);
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .metric-sub {
+            font-family: var(--hh-font-sans);
+            color: var(--hh-text-muted);
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 4px;
+            font-family: var(--hh-font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .badge-critical {
+            background: rgba(255, 51, 68, 0.12);
+            color: #ff3344;
+            border: 1px solid rgba(255, 51, 68, 0.4);
+        }
+        .badge-high {
+            background: rgba(255, 170, 0, 0.12);
+            color: #ffaa00;
+            border: 1px solid rgba(255, 170, 0, 0.4);
+        }
+        .badge-medium {
+            background: rgba(255, 215, 0, 0.12);
+            color: #ffd700;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+        }
+        .badge-low {
+            background: rgba(0, 229, 255, 0.12);
+            color: #00e5ff;
+            border: 1px solid rgba(0, 229, 255, 0.4);
+        }
+        .badge-verified {
+            background: rgba(0, 255, 65, 0.12);
+            color: var(--hh-primary);
+            border: 1px solid var(--hh-primary);
+        }
+        .badge-rejected {
+            background: rgba(255, 51, 68, 0.12);
+            color: #ff3344;
+            border: 1px solid rgba(255, 51, 68, 0.4);
+        }
+
+        /* Tabs */
         .stTabs [data-baseweb="tab-list"] {
-            gap: 10px;
+            gap: 8px;
+            border-bottom: 1px solid var(--hh-border);
+            padding-bottom: 0px;
         }
         .stTabs [data-baseweb="tab"] {
-            background-color: #1e293b;
-            border-radius: 8px 8px 0px 0px;
-            padding: 10px 20px;
-            color: #94a3b8;
-            border: 1px solid #334155;
-            border-bottom: none;
+            background-color: #111111 !important;
+            border-radius: 6px 6px 0px 0px !important;
+            padding: 10px 18px !important;
+            color: var(--hh-text-muted) !important;
+            border: 1px solid var(--hh-border) !important;
+            border-bottom: none !important;
+            font-family: var(--hh-font-mono) !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease !important;
+        }
+        .stTabs [data-baseweb="tab"]:hover {
+            color: var(--hh-primary) !important;
+            border-color: var(--hh-border-hover) !important;
         }
         .stTabs [aria-selected="true"] {
-            background-color: #0284c7 !important;
-            color: #ffffff !important;
-            font-weight: bold;
+            background-color: #171717 !important;
+            color: var(--hh-primary) !important;
+            border-color: var(--hh-border-hover) !important;
+            border-bottom: 2px solid var(--hh-primary) !important;
+            font-weight: 800 !important;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+        }
+
+        /* Hacker.House Terminal Buttons */
+        div.stButton > button {
+            background-color: var(--hh-primary) !important;
+            color: #0a0a0a !important;
+            font-family: var(--hh-font-mono) !important;
+            font-weight: 700 !important;
+            font-size: 13px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            border: 1px solid var(--hh-primary) !important;
+            border-radius: 4px !important;
+            padding: 0.55rem 1.25rem !important;
+            box-shadow: 0 0 12px rgba(0, 255, 65, 0.25) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        div.stButton > button:hover {
+            background-color: var(--hh-primary-hover) !important;
+            color: #000000 !important;
+            border-color: var(--hh-primary-hover) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.55) !important;
+            transform: translateY(-1px) !important;
+        }
+        div.stButton > button:active {
+            transform: translateY(1px) !important;
+        }
+
+        /* Sidebar Styling */
+        section[data-testid="stSidebar"] {
+            background-color: #070707 !important;
+            border-right: 1px solid var(--hh-border) !important;
+        }
+        section[data-testid="stSidebar"] h1,
+        section[data-testid="stSidebar"] h2,
+        section[data-testid="stSidebar"] h3 {
+            color: var(--hh-primary) !important;
+            font-family: var(--hh-font-mono) !important;
+        }
+        section[data-testid="stSidebar"] [data-testid="stMetricValue"] {
+            font-family: var(--hh-font-mono) !important;
+            color: var(--hh-primary) !important;
+            text-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+        }
+
+        /* Inputs, Selectboxes & Textareas */
+        div[data-baseweb="select"] > div,
+        input[type="text"],
+        input[type="number"],
+        div[data-baseweb="input"] > div {
+            background-color: #0f0f0f !important;
+            border-color: var(--hh-border) !important;
+            color: var(--hh-text-main) !important;
+            border-radius: 4px !important;
+            font-family: var(--hh-font-mono) !important;
+        }
+        div[data-baseweb="select"] > div:hover,
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: var(--hh-primary) !important;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.25) !important;
+        }
+
+        /* Code Blocks */
+        code, pre {
+            font-family: var(--hh-font-mono) !important;
+            background-color: #0d0d0d !important;
+            border: 1px solid var(--hh-border) !important;
+            color: var(--hh-primary) !important;
+            border-radius: 4px !important;
+        }
+
+        /* Expanders */
+        .streamlit-expanderHeader {
+            background-color: #101010 !important;
+            border: 1px solid var(--hh-border) !important;
+            border-radius: 4px !important;
+            color: var(--hh-primary) !important;
+            font-family: var(--hh-font-mono) !important;
+            font-size: 13px !important;
+        }
+        .streamlit-expanderHeader:hover {
+            border-color: var(--hh-primary) !important;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.15);
+        }
+
+        /* Callout Trajectory Boxes */
+        .terminal-callout {
+            background: #0d0d0d;
+            border: 1px solid var(--hh-border);
+            border-left: 4px solid var(--hh-primary);
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .terminal-callout:hover {
+            border-color: var(--hh-border-hover);
+            box-shadow: 0 0 12px rgba(0, 255, 65, 0.15);
+        }
+        .terminal-callout-danger {
+            border-left-color: #ff3344 !important;
+        }
+
+        /* Dataframe / Table Container */
+        div[data-testid="stDataFrame"] {
+            border: 1px solid var(--hh-border);
+            border-radius: 4px;
+            overflow: hidden;
         }
     </style>
     """,
@@ -145,11 +473,28 @@ if st.sidebar.button("🔄 Refresh Data", use_container_width=True):
 # --- Header Banner ---
 st.markdown(
     """
-    <div class="main-header">
-        <h1 style="margin: 0; color: #38bdf8; font-size: 28px;">🛡️ VAPT-GPT Sentinel Operations Console</h1>
-        <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 15px;">
-            Closed-Loop Defensive Vulnerability Remediation, Attack-Path Digital Twin & Counterfactual Reasoning Engine
-        </p>
+    <div class="terminal-window">
+        <div class="terminal-topbar">
+            <div class="terminal-cmd">
+                <span class="prompt-user">sentinel@ops-workstation</span>:<span class="prompt-path">~/sentinel-core</span>$
+                <span>./sentinel dashboard --mode=closed-loop</span>
+                <span class="cursor-blink"></span>
+            </div>
+            <div class="terminal-controls">
+                <span class="t-btn">_</span>
+                <span class="t-btn">□</span>
+                <span class="t-btn">×</span>
+            </div>
+        </div>
+        <div class="main-header-content">
+            <div class="header-title">
+                <span>🛡️ VAPT-GPT SENTINEL</span>
+                <span class="badge-live">LIVE SYSTEM DEFENSE</span>
+            </div>
+            <p class="header-subtitle">
+                Autonomous Defensive Closed-Loop Vulnerability Remediation • Digital Twin Attack Paths • Deterministic Verification
+            </p>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -176,14 +521,16 @@ with tab_overview:
     # Metric Cards Row
     c1, c2, c3, c4 = st.columns(4)
     with c1:
+        risk_val = risk_data["system_risk_score"]
+        risk_color = "#ff3344" if risk_val >= 50 else "#00ff41"
         st.markdown(
             f"""
             <div class="metric-card">
-                <div style="color: #94a3b8; font-size: 13px;">HOLISTIC SYSTEM RISK</div>
-                <div style="font-size: 32px; font-weight: bold; color: {"#ef4444" if risk_data["system_risk_score"] >= 50 else "#10b981"};">
-                    {risk_data["system_risk_score"]} <span style="font-size: 18px; color: #94a3b8;">/ 100</span>
+                <div class="metric-label">HOLISTIC SYSTEM RISK</div>
+                <div class="metric-value" style="color: {risk_color};">
+                    {risk_val} <span style="font-size: 16px; color: #9ca3af;">/ 100</span>
                 </div>
-                <small style="color: #94a3b8;">Probabilistic Crown Jewel Exposure</small>
+                <div class="metric-sub">Probabilistic Crown Jewel Exposure</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -194,11 +541,11 @@ with tab_overview:
         st.markdown(
             f"""
             <div class="metric-card">
-                <div style="color: #94a3b8; font-size: 13px;">ACTIVE FINDINGS</div>
-                <div style="font-size: 32px; font-weight: bold; color: #f59e0b;">
+                <div class="metric-label">ACTIVE FINDINGS</div>
+                <div class="metric-value" style="color: #ffaa00;">
                     {len(all_findings)}
                 </div>
-                <small style="color: #94a3b8;">{crit_count} Critical | {high_count} High</small>
+                <div class="metric-sub">{crit_count} Critical • {high_count} High</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -208,26 +555,26 @@ with tab_overview:
         st.markdown(
             f"""
             <div class="metric-card">
-                <div style="color: #94a3b8; font-size: 13px;">VERIFIED REMEDIATIONS</div>
-                <div style="font-size: 32px; font-weight: bold; color: #10b981;">
-                    {verif_count} <span style="font-size: 18px; color: #94a3b8;">/ {len(patches)}</span>
+                <div class="metric-label">VERIFIED REMEDIATIONS</div>
+                <div class="metric-value" style="color: #00ff41;">
+                    {verif_count} <span style="font-size: 16px; color: #9ca3af;">/ {len(patches)}</span>
                 </div>
-                <small style="color: #94a3b8;">Deterministic Invariants Verified</small>
+                <div class="metric-sub">Deterministic Invariants Passed</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
     with c4:
-        audit_color = "#10b981" if audit_valid else "#ef4444"
+        audit_color = "#00ff41" if audit_valid else "#ff3344"
         audit_text = "VALID & CHAINED" if audit_valid else "COMPROMISED"
         st.markdown(
             f"""
             <div class="metric-card">
-                <div style="color: #94a3b8; font-size: 13px;">CRYPTOGRAPHIC AUDIT</div>
-                <div style="font-size: 22px; font-weight: bold; color: {audit_color}; margin: 8px 0;">
+                <div class="metric-label">CRYPTOGRAPHIC AUDIT</div>
+                <div class="metric-value" style="color: {audit_color}; font-size: 20px; margin: 8px 0;">
                     {audit_text}
                 </div>
-                <small style="color: #94a3b8;">{audit_count} SHA-256 Chained Events</small>
+                <div class="metric-sub">{audit_count} SHA-256 Chained Events</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -242,11 +589,11 @@ with tab_overview:
             for p in attack_paths[:3]:
                 st.markdown(
                     f"""
-                    <div style="background: #1e293b; border-left: 4px solid #ef4444; padding: 12px 16px; margin-bottom: 10px; border-radius: 4px;">
-                        <strong>Target:</strong> <code style="color: #ef4444;">{p.target_crown_jewel}</code> |
-                        <strong>Probability:</strong> <code>{p.probability:.3f}</code> |
-                        <strong>Risk:</strong> <code>{p.risk_contribution:.1f}</code><br>
-                        <small style="color: #94a3b8;">{p.description}</small>
+                    <div class="terminal-callout terminal-callout-danger">
+                        <strong style="color: #f3f4f6;">Target:</strong> <code style="color: #ff3344;">{p.target_crown_jewel}</code> |
+                        <strong style="color: #f3f4f6;">Probability:</strong> <code>{p.probability:.3f}</code> |
+                        <strong style="color: #f3f4f6;">Risk:</strong> <code>{p.risk_contribution:.1f}</code><br>
+                        <small style="color: #9ca3af; font-family: var(--hh-font-sans);">{p.description}</small>
                     </div>
                     """,
                     unsafe_allow_html=True,

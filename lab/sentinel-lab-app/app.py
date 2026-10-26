@@ -128,62 +128,270 @@ def index() -> Response:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentinel Lab App</title>
+    <title>Sentinel Lab Target Application</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
         :root {
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --surface-hover: #334155;
-            --primary: #38bdf8;
-            --accent: #818cf8;
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #334155;
-            --danger: #f43f5e;
-            --success: #10b981;
+            --hh-bg: #0a0a0a;
+            --hh-surface: #111111;
+            --hh-card: #0e0e0e;
+            --hh-primary: #00ff41;
+            --hh-primary-hover: #33ff66;
+            --hh-text: #f3f4f6;
+            --hh-text-muted: #9ca3af;
+            --hh-border: rgba(0, 255, 65, 0.22);
+            --hh-border-hover: rgba(0, 255, 65, 0.5);
+            --hh-danger: #ff3344;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 2rem; display: flex; justify-content: center; }
-        .container { max-width: 900px; width: 100%; }
-        header { text-align: center; margin-bottom: 2.5rem; }
-        h1 { font-size: 2.2rem; color: var(--primary); margin-bottom: 0.5rem; }
-        p.subtitle { color: var(--text-muted); font-size: 1.1rem; }
-        .badge { display: inline-block; background: rgba(56, 189, 248, 0.15); color: var(--primary); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; margin-top: 0.75rem; border: 1px solid rgba(56, 189, 248, 0.3); }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .card h2 { font-size: 1.3rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
-        .card p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 255, 65, 0.3); border-radius: 4px; border: 2px solid #0a0a0a; }
+        ::-webkit-scrollbar-thumb:hover { background: #00ff41; box-shadow: 0 0 10px #00ff41; }
+        body {
+            background: var(--hh-bg);
+            color: var(--hh-text);
+            font-family: var(--font-sans);
+            padding: 2.5rem 1.5rem;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container { max-width: 960px; width: 100%; }
+        .terminal-window {
+            background: var(--hh-surface);
+            border: 1px solid var(--hh-border);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 255, 65, 0.08);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .terminal-window:hover {
+            border-color: var(--hh-border-hover);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 255, 65, 0.15);
+        }
+        .terminal-topbar {
+            background: #050505;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--hh-border);
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+        .terminal-cmd {
+            color: var(--hh-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .prompt-user { color: var(--hh-primary); font-weight: 700; }
+        .prompt-path { color: #38bdf8; }
+        .cursor-blink {
+            display: inline-block;
+            width: 7px;
+            height: 14px;
+            background: var(--hh-primary);
+            vertical-align: middle;
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        .terminal-controls { display: flex; gap: 8px; }
+        .t-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border: 1px solid rgba(0, 255, 65, 0.35);
+            border-radius: 3px;
+            color: var(--hh-primary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: rgba(0, 255, 65, 0.05);
+        }
+        .header {
+            padding: 24px 28px;
+            background: linear-gradient(180deg, #111111 0%, #0a0a0a 100%);
+            text-align: center;
+        }
+        h1 {
+            font-family: var(--font-mono);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--hh-primary);
+            text-shadow: 0 0 12px rgba(0, 255, 65, 0.3);
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+        }
+        p.subtitle { color: var(--hh-text-muted); font-size: 14px; line-height: 1.5; }
+        .badge {
+            display: inline-block;
+            background: rgba(0, 255, 65, 0.12);
+            color: var(--hh-primary);
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 10px;
+            border: 1px solid var(--hh-primary);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .card {
+            background: var(--hh-card);
+            border: 1px solid var(--hh-border);
+            border-radius: 6px;
+            padding: 20px 24px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+        }
+        .card:hover {
+            border-color: var(--hh-border-hover);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 65, 0.12);
+        }
+        .card h2 {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--hh-text);
+        }
+        .card p { color: var(--hh-text-muted); font-size: 14px; margin-bottom: 1rem; }
         .input-group { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
-        input[type="text"] { flex: 1; padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid var(--border); background: #0b1120; color: #fff; font-size: 0.95rem; }
-        input[type="text"]:focus { outline: none; border-color: var(--primary); }
-        button, a.btn { padding: 0.6rem 1.2rem; border-radius: 6px; font-size: 0.95rem; font-weight: 500; cursor: pointer; text-decoration: none; border: none; display: inline-flex; align-items: center; gap: 0.5rem; }
-        .btn-primary { background: var(--primary); color: #0b1120; font-weight: 600; }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-secondary { background: var(--surface-hover); color: var(--text); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: #475569; }
-        .quick-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-        .quick-link { font-size: 0.85rem; padding: 0.25rem 0.6rem; border-radius: 4px; background: rgba(255, 255, 255, 0.05); color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); }
-        .quick-link:hover { color: var(--primary); border-color: var(--primary); }
-        .quick-link.vuln { color: #fda4af; border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1); }
-        .quick-link.vuln:hover { border-color: var(--danger); }
-        .api-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
-        .api-item { background: #0b1120; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid var(--border); text-decoration: none; color: var(--text); display: block; }
-        .api-item:hover { border-color: var(--accent); }
-        .api-item .method { font-size: 0.75rem; font-weight: 700; color: var(--accent); margin-right: 0.5rem; }
+        input[type="text"] {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--hh-border);
+            background: #050505;
+            color: var(--hh-primary);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--hh-primary);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.25);
+        }
+        button, a.btn {
+            padding: 0.65rem 1.25rem;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: var(--hh-primary);
+            color: #0a0a0a;
+            box-shadow: 0 0 12px rgba(0, 255, 65, 0.25);
+        }
+        .btn-primary:hover {
+            background: var(--hh-primary-hover);
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.55);
+            transform: translateY(-1px);
+        }
+        .quick-links { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        .quick-link {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 0.35rem 0.75rem;
+            border-radius: 4px;
+            background: #050505;
+            color: var(--hh-text-muted);
+            text-decoration: none;
+            border: 1px solid var(--hh-border);
+            transition: all 0.2s ease;
+        }
+        .quick-link:hover {
+            color: var(--hh-primary);
+            border-color: var(--hh-primary);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+        .quick-link.vuln {
+            color: #ff3344;
+            border-color: rgba(255, 51, 68, 0.35);
+            background: rgba(255, 51, 68, 0.08);
+        }
+        .quick-link.vuln:hover {
+            border-color: #ff3344;
+            box-shadow: 0 0 12px rgba(255, 51, 68, 0.3);
+        }
+        .api-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; }
+        .api-item {
+            background: #050505;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--hh-border);
+            text-decoration: none;
+            color: var(--hh-text);
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .api-item:hover {
+            border-color: var(--hh-primary);
+            color: var(--hh-primary);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+        .api-item .method {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--hh-primary);
+            margin-right: 0.5rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🛡️ Sentinel Lab Target Application</h1>
-            <p class="subtitle">Controlled testbed application for defensive closed-loop vulnerability remediation research</p>
-            <span class="badge">Running in Isolated Docker Network (Port 8080)</span>
-        </header>
+        <div class="terminal-window">
+            <div class="terminal-topbar">
+                <div class="terminal-cmd">
+                    <span class="prompt-user">target@sentinel-lab</span>:<span class="prompt-path">~/vulnerable-app</span>$
+                    <span>python app.py --port=8080</span>
+                    <span class="cursor-blink"></span>
+                </div>
+                <div class="terminal-controls">
+                    <span class="t-btn">_</span>
+                    <span class="t-btn">□</span>
+                    <span class="t-btn">×</span>
+                </div>
+            </div>
+            <div class="header">
+                <h1>🛡️ Sentinel Lab Target Application</h1>
+                <p class="subtitle">Controlled testbed environment for defensive closed-loop vulnerability remediation research</p>
+                <span class="badge">Isolated Docker Network • Port 8080</span>
+            </div>
+        </div>
 
         <!-- Product Search (SQLi test) -->
         <div class="card">
             <h2>
                 <span>🔍 Product Catalog Search</span>
-                <span style="font-size: 0.8rem; color: #f43f5e;">CWE-89 Lab Target</span>
+                <span style="font-size: 0.8rem; color: #ff3344; font-family: var(--font-mono);">CWE-89 Lab Target</span>
             </h2>
             <p>Query the internal SQLite database for products.</p>
             <form action="/api/search" method="GET" class="input-group">
@@ -191,7 +399,7 @@ def index() -> Response:
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
             <div class="quick-links">
-                <span style="font-size: 0.85rem; color: var(--text-muted); align-self: center;">Test queries:</span>
+                <span style="font-size: 0.8rem; color: var(--hh-text-muted); font-family: var(--font-mono);">Test queries:</span>
                 <a class="quick-link" href="/api/search?q=Laptop">q=Laptop (Normal)</a>
                 <a class="quick-link" href="/api/search?q=Mouse">q=Mouse (Normal)</a>
                 <a class="quick-link vuln" href="/api/search?q=' OR 1=1 --">q=' OR 1=1 -- (Planted SQLi)</a>
@@ -202,7 +410,7 @@ def index() -> Response:
         <div class="card">
             <h2>
                 <span>💬 User Greeting</span>
-                <span style="font-size: 0.8rem; color: #f43f5e;">CWE-79 Lab Target</span>
+                <span style="font-size: 0.8rem; color: #ff3344; font-family: var(--font-mono);">CWE-79 Lab Target</span>
             </h2>
             <p>Generates a dynamic user welcome response.</p>
             <form action="/api/greet" method="GET" class="input-group">
@@ -210,7 +418,7 @@ def index() -> Response:
                 <button type="submit" class="btn btn-primary">Greet</button>
             </form>
             <div class="quick-links">
-                <span style="font-size: 0.85rem; color: var(--text-muted); align-self: center;">Test inputs:</span>
+                <span style="font-size: 0.8rem; color: var(--hh-text-muted); font-family: var(--font-mono);">Test inputs:</span>
                 <a class="quick-link" href="/api/greet?name=Alice">name=Alice (Normal)</a>
                 <a class="quick-link vuln" href="/api/greet?name=%3Ch1%3EHacked%3C/h1%3E">name=&lt;h1&gt;Hacked&lt;/h1&gt; (Planted XSS)</a>
             </div>
@@ -220,7 +428,7 @@ def index() -> Response:
         <div class="card">
             <h2>
                 <span>📦 Customer Orders</span>
-                <span style="font-size: 0.8rem; color: #f43f5e;">CWE-639 Lab Target</span>
+                <span style="font-size: 0.8rem; color: #ff3344; font-family: var(--font-mono);">CWE-639 Lab Target</span>
             </h2>
             <p>Inspect order records by ID.</p>
             <div class="quick-links">
