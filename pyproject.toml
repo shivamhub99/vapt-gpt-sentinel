@@ -34,11 +34,12 @@ sentinel = "sentinel.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["sentinel*"]
+include = ["sentinel*", "evaluation*", "dashboard*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "lab/sentinel-lab-app/tests"]
 python_files = ["test_*.py"]
+pythonpath = ["."]
 addopts = "-v --strict-markers --import-mode=importlib"
 
 

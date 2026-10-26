@@ -1,0 +1,7 @@
+Finding_ID,CWE,Title,Severity,CVSS_Base,Contextual_Score,Location,Status
+faulty_patch_finding,CWE-89,SQL Injection,HIGH,8.8,81.25,app.py,NEEDS_HUMAN
+e2e_sqli_find,CWE-89,SQL Injection in search endpoint,HIGH,8.8,81.25,app.py,VERIFIED
+idor_order_access,CWE-639,IDOR Access Control Missing on Orders Endpoint,HIGH,7.5,55.5,app.py,NEEDS_HUMAN
+finding_cwe_942_8ed2763e,CWE-942,Overly Permissive CORS Policy (Wildcard Origin Allowed),MEDIUM,6.5,46.75,http://localhost:8080,OPEN
+finding_cwe_614_c5967ccc,CWE-614,Insecure Cookie Flags on 'session_id',MEDIUM,4.3,43.25,http://localhost:8080/api/login,OPEN
+finding_cwe_693_84977358,CWE-693,Missing HTTP Strict Transport Security (HSTS) Header,HIGH,5.3,41.88,http://localhost:8080,OPEN

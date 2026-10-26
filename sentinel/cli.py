@@ -1014,5 +1014,117 @@ def dashboard(
     subprocess.run(cmd)
 
 
+@app.command()
+def evaluate(
+    budget: int = typer.Option(
+        2,
+        "--budget",
+        "-b",
+        help="Intervention budget (number of fixes allowed per strategy)",
+    ),
+    output_dir: Optional[str] = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Output directory to save evaluation artifacts (CSVs and PNG plots)",
+    ),
+) -> None:
+    """Executes the academic evaluation harness comparing VAPT-Sentinel against traditional baselines."""
+    from evaluation.benchmark import benchmark_runner
+
+    out_path = Path(output_dir).resolve() if output_dir else None
+    runner = benchmark_runner if not out_path else type(benchmark_runner)(output_dir=out_path)
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]VAPT-GPT Sentinel Academic Evaluation Harness (Phase 9)[/bold cyan]\n"
+            f"[bold]Intervention Budget:[/bold] {budget} fixes | [bold]Output Directory:[/bold] {runner.output_dir}\n"
+            f"[bold]Research Scope:[/bold] RQ1 (Contextual Risk), RQ2 (Twin Attack Paths), RQ3 (Minimum Defensive Cut)",
+            border_style="cyan",
+        )
+    )
+
+    with console.status(
+        "[yellow]Executing comparative benchmarks & generating thesis figures...[/yellow]"
+    ):
+        result = runner.run_benchmark(budget=budget)
+
+    # Strategy comparison table
+    table = Table(
+        title="Comparative Evaluation: Triage & Remediation Baselines",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Strategy", style="bold")
+    table.add_column("Patches", justify="center")
+    table.add_column("Cost", justify="right")
+    table.add_column("Residual Risk", justify="right", style="cyan")
+    table.add_column("Risk Reduction", justify="right", style="bold green")
+    table.add_column("Efficiency (DeltaRisk/Cost)", justify="right", style="bold yellow")
+    table.add_column("Paths Left", justify="center")
+
+    for s in result["strategy_results"]:
+        table.add_row(
+            s.strategy_name,
+            str(s.patches_applied),
+            f"{s.operational_cost:.1f}",
+            f"{s.residual_risk:.1f}",
+            f"-{s.risk_reduction_pct:.1f}%",
+            f"{s.efficiency_ratio:.2f}",
+            str(s.attack_paths_remaining),
+        )
+
+    console.print(table)
+
+    metrics = result["metrics"]
+    metrics_table = Table(
+        title="Overall Architecture Research Metrics", show_header=True, header_style="bold cyan"
+    )
+    metrics_table.add_column("Academic Metric", style="bold")
+    metrics_table.add_column("Measured Value", justify="right")
+    metrics_table.add_column("Significance")
+
+    metrics_table.add_row(
+        "Remediation Success Rate (RSR)",
+        f"{metrics.remediation_success_rate:.1f}%",
+        "Verified Patches / Total Attempts",
+    )
+    metrics_table.add_row(
+        "Functional Pass Rate (FPR)",
+        f"{metrics.functional_pass_rate:.1f}%",
+        "Patches preserving functional test suite",
+    )
+    metrics_table.add_row(
+        "Attack Surface Risk Reduction",
+        f"-{metrics.risk_reduction_pct:.1f}%",
+        "Holistic digital twin risk score depletion",
+    )
+    metrics_table.add_row(
+        "Deterministic Rollback Rate",
+        f"{metrics.rollback_rate:.1f}%",
+        "Safety guarantee: 100% of rejected patches rolled back",
+    )
+    metrics_table.add_row(
+        "Adversarial Displacement Rate",
+        f"{metrics.adversary_displacement_rate:.1f}%",
+        "Threat actors displaced to secondary assets",
+    )
+
+    console.print(metrics_table)
+
+    csv_list = "\n".join(f"- [bold]{k}:[/bold] {v}" for k, v in result["csv_paths"].items())
+    fig_list = "\n".join(f"- [bold]{k}:[/bold] {v}" for k, v in result["figure_paths"].items())
+
+    console.print(
+        Panel(
+            f"[bold green]Academic Artifacts Successfully Generated![/bold green]\n\n"
+            f"[bold]Tabular Datasets (CSV):[/bold]\n{csv_list}\n\n"
+            f"[bold]Publication Figures (PNG):[/bold]\n{fig_list}",
+            title="Evaluation Artifacts Exported",
+            border_style="green",
+        )
+    )
+
+
 if __name__ == "__main__":
     app()

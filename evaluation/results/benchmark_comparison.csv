@@ -1,0 +1,5 @@
+Strategy,Patches_Applied,Operational_Cost,Initial_Risk,Residual_Risk,Risk_Reduction_Pct,Efficiency_Ratio,Paths_Disrupted,Paths_Remaining
+Scanner-Only,2,2.0,60.5,26.6,56.03,16.95,8,4
+CVSS-Only Baseline,2,2.0,60.5,26.6,56.03,16.95,8,4
+Patch-Everything,6,6.0,60.5,0.0,100.0,10.08,12,0
+VAPT-Sentinel (Proposed),1,1.0,60.5,33.9,43.97,26.6,4,8

@@ -32,6 +32,8 @@ class FrameworkSettings(BaseModel):
     timeout_seconds: int = 300
     owner_authorized: bool = False
     llm_provider: str = "mock"
+    base_dir: Path = BASE_DIR
+    workspace_dir: Path = BASE_DIR
     runs_dir: Path = BASE_DIR / "runs"
     audit_log_path: Path = BASE_DIR / "runs" / "audit_log.jsonl"
     scope_path: Path = BASE_DIR / "config" / "scope.yaml"

@@ -1,0 +1,13 @@
+Metric_Name,Value,Unit
+Total_Findings,6,count
+Remediation_Attempts,3,count
+Verified_Patches,2,count
+Rejected_Patches,1,count
+Remediation_Success_Rate,66.67,%
+Functional_Pass_Rate,100.0,%
+Initial_System_Risk,60.5,score_0_100
+Residual_System_Risk,33.9,score_0_100
+Risk_Reduction_Percentage,43.97,%
+Rollback_Rate,100.0,%
+Adversary_Displacement_Rate,33.33,%
+Total_Defensive_Cost,3.0,units
