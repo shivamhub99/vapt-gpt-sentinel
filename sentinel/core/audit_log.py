@@ -79,5 +79,20 @@ class AuditLogger:
         self._last_hash = entry_hash
         return payload
 
+    def read_all(self) -> list[Dict[str, Any]]:
+        """Reads all audit log records from the ledger file."""
+        if not self.log_path.exists():
+            return []
+        entries = []
+        with open(self.log_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line_str = line.strip()
+                if line_str:
+                    try:
+                        entries.append(json.loads(line_str))
+                    except json.JSONDecodeError:
+                        continue
+        return entries
+
 
 audit_logger = AuditLogger()
