@@ -527,6 +527,234 @@ def verify(
         )
 
 
+twin_app = typer.Typer(
+    name="twin",
+    help="Digital Twin Attack Path & Counterfactual Reasoning Engine (RQ2, RQ3)",
+    add_completion=False,
+)
+app.add_typer(twin_app, name="twin")
+
+
+def _get_target_run_findings(run_id: Optional[str]):
+    from sentinel.core.database import db
+
+    if run_id:
+        target_run_id = run_id
+        findings = db.get_findings_by_run(target_run_id)
+    else:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM findings")
+        rows = cursor.fetchall()
+        conn.close()
+        target_run_id = "full_system"
+        findings = [db.get_finding(r["id"]) for r in rows]
+
+    return target_run_id, [f for f in findings if f]
+
+
+@twin_app.command(name="paths")
+def twin_paths(
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        "-r",
+        help="Run ID to analyze attack paths for (defaults to latest scan)",
+    ),
+) -> None:
+    """Discovers all attack paths from entry points to crown jewels (RQ2)."""
+    from sentinel.twin.attack_paths import attack_path_analyzer
+    from sentinel.twin.builder import twin_builder
+
+    target_run_id, findings = _get_target_run_findings(run_id)
+    if not findings:
+        console.print(
+            "[yellow]No findings found in database. Building baseline topology...[/yellow]"
+        )
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Research Question 2 (RQ2): Digital Twin Attack Path Analysis[/bold cyan]\n"
+            f"[bold]Run ID:[/bold] {target_run_id or 'baseline'} | [bold]Findings Incorporated:[/bold] {len(findings)}",
+            border_style="cyan",
+        )
+    )
+
+    twin = twin_builder.build(findings)
+    paths = attack_path_analyzer.find_all_attack_paths(twin)
+
+    if not paths:
+        console.print("[green]Zero reachable attack paths to crown jewels discovered![/green]")
+        return
+
+    table = Table(
+        title=f"Discovered Attack Paths to Crown Jewels ({len(paths)} total)",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Path ID", style="dim", no_wrap=True)
+    table.add_column("Target Crown Jewel", style="bold red")
+    table.add_column("Probability", justify="right", style="bold yellow")
+    table.add_column("Effort (Cost)", justify="right")
+    table.add_column("Risk Contrib", justify="right", style="bold red")
+    table.add_column("Exploit Progression Narrative")
+
+    for p in paths:
+        table.add_row(
+            p.path_id,
+            p.target_crown_jewel,
+            f"{p.probability:.3f}",
+            f"{p.attacker_cost:.1f}",
+            f"{p.risk_contribution:.1f}",
+            p.description,
+        )
+
+    console.print(table)
+
+
+@twin_app.command(name="risk")
+def twin_risk(
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        "-r",
+        help="Run ID to calculate holistic system risk for",
+    ),
+) -> None:
+    """Calculates holistic system attack surface risk score (0-100) (RQ2)."""
+    from sentinel.twin.attack_paths import attack_path_analyzer
+    from sentinel.twin.builder import twin_builder
+    from sentinel.twin.risk import system_risk_calculator
+
+    target_run_id, findings = _get_target_run_findings(run_id)
+    twin = twin_builder.build(findings)
+    paths = attack_path_analyzer.find_all_attack_paths(twin)
+    risk_data = system_risk_calculator.calculate_system_risk(paths)
+
+    system_score = risk_data["system_risk_score"]
+    score_color = "red" if system_score >= 60 else ("yellow" if system_score >= 30 else "green")
+
+    console.print(
+        Panel(
+            f"[bold {score_color}]System Attack Surface Risk Score: {system_score} / 100[/bold {score_color}]\n\n"
+            f"[bold]Run ID:[/bold] {target_run_id or 'baseline'} | [bold]Total Attack Paths:[/bold] {risk_data['total_paths_count']}\n"
+            f"{risk_data['summary']}",
+            title="Digital Twin System Risk Assessment (RQ2)",
+            border_style=score_color,
+        )
+    )
+
+    jewels_table = Table(
+        title="Crown Jewel Asset Exposure Breakdown", show_header=True, header_style="bold cyan"
+    )
+    jewels_table.add_column("Crown Jewel Asset", style="bold")
+    jewels_table.add_column("Compromise Probability", justify="right", style="yellow")
+    jewels_table.add_column("Asset Criticality", justify="right")
+    jewels_table.add_column("Asset Risk Score", justify="right", style="bold red")
+    jewels_table.add_column("Reaching Paths", justify="center")
+
+    for jewel, data in risk_data["crown_jewel_risks"].items():
+        jewels_table.add_row(
+            jewel,
+            f"{data['compromise_probability']:.3f}",
+            f"{data['criticality']:.2f}",
+            f"{data['risk_score']:.1f}",
+            str(data["path_count"]),
+        )
+
+    console.print(jewels_table)
+
+
+@twin_app.command(name="counterfactual")
+def twin_counterfactual(
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        "-r",
+        help="Run ID to perform counterfactual intervention optimization for",
+    ),
+    threshold: float = typer.Option(
+        40.0,
+        "--threshold",
+        "-t",
+        help="Target risk reduction percentage (default: 40%)",
+    ),
+) -> None:
+    """Solves the Minimum Defensive Change Problem: minimal-cost intervention set (RQ3)."""
+    from sentinel.twin.builder import twin_builder
+    from sentinel.twin.counterfactual import counterfactual_engine
+
+    target_run_id, findings = _get_target_run_findings(run_id)
+    twin = twin_builder.build(findings)
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Research Question 3 (RQ3): Counterfactual Minimum Defensive Change[/bold cyan]\n"
+            f"[bold]Target Risk Reduction Threshold:[/bold] {threshold:.1f}%\n"
+            f"[bold]Run ID:[/bold] {target_run_id or 'baseline'}",
+            border_style="cyan",
+        )
+    )
+
+    with console.status(
+        "[yellow]Evaluating combinatorial intervention cuts on in-memory twin...[/yellow]"
+    ):
+        result = counterfactual_engine.evaluate_minimum_defensive_change(
+            twin, target_reduction_pct=threshold
+        )
+
+    console.print(
+        Panel(
+            f"[bold green]Optimal Minimum Defensive Intervention Solution:[/bold green]\n\n"
+            f"{result.explanation}\n\n"
+            f"[bold]Baseline Risk:[/bold] {result.pre_risk_score} -> [bold green]Residual Risk:[/bold green] {result.post_risk_score}\n"
+            f"[bold]Risk Reduction:[/bold] [bold green]-{result.risk_reduction_pct:.1f}%[/bold green]\n"
+            f"[bold]Total Operational Cost:[/bold] {result.total_cost:.1f}\n"
+            f"[bold]Attack Paths Disrupted:[/bold] {result.disrupted_paths_count} (Residual Paths: {result.residual_paths_count})",
+            title="Optimal Defensive Plan (RQ3)",
+            border_style="green",
+        )
+    )
+
+    # Action Items Table
+    actions_table = Table(
+        title="Recommended Minimal Action Set", show_header=True, header_style="bold yellow"
+    )
+    actions_table.add_column("Action Type", style="cyan")
+    actions_table.add_column("Target Item", style="bold")
+    actions_table.add_column("Cost", justify="right")
+    actions_table.add_column("Rationale / Impact")
+
+    for act in result.recommended_interventions:
+        actions_table.add_row(act.action_type, act.target_label, f"{act.cost:.1f}", act.description)
+
+    console.print(actions_table)
+
+    # Trade-off Alternatives Table
+    if result.tradeoff_alternatives:
+        tradeoff_table = Table(
+            title="Trade-off Alternatives: Operational Cost vs Risk Reduction",
+            show_header=True,
+            header_style="bold magenta",
+        )
+        tradeoff_table.add_column("Intervention Bundle", style="bold")
+        tradeoff_table.add_column("Defensive Cost", justify="right")
+        tradeoff_table.add_column("Residual Risk", justify="right", style="cyan")
+        tradeoff_table.add_column("Risk Reduction %", justify="right", style="bold green")
+        tradeoff_table.add_column("Paths Broken", justify="center")
+
+        for alt in result.tradeoff_alternatives:
+            tradeoff_table.add_row(
+                alt["actions"][:45] + ("..." if len(alt["actions"]) > 45 else ""),
+                f"{alt['cost']:.1f}",
+                f"{alt['post_risk']:.1f}",
+                alt["reduction_pct"],
+                str(alt["disrupted_paths"]),
+            )
+
+        console.print(tradeoff_table)
+
+
 @app.command()
 def status() -> None:
     """Displays framework status, scope boundaries, and running lab targets."""
