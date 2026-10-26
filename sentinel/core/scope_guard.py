@@ -76,6 +76,8 @@ class ScopeGuard:
                 "Sentinel strictly prohibits scanning unauthorized targets."
             )
 
+    validate_ownership = check_authorization
+
     def validate_target(self, target: str, run_id: Optional[str] = None) -> bool:
         """
         Validates target against scope allowlist.

@@ -94,5 +94,59 @@ class AuditLogger:
                         continue
         return entries
 
+    def log_event(
+        self,
+        event_type: str,
+        details: Dict[str, Any],
+        actor: str = "Orchestrator",
+        run_id: Optional[str] = None,
+        target: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Convenience wrapper for logging pipeline events."""
+        return self.log(
+            event_type=event_type,
+            actor=actor,
+            details=details,
+            run_id=run_id,
+            target=target,
+        )
+
+    def verify_chain(self) -> tuple[bool, int, Optional[str]]:
+        """
+        Verifies the cryptographic SHA-256 chain of all records in the audit ledger.
+        Returns: (is_valid, record_count, error_message)
+        """
+        records = self.read_all()
+        if not records:
+            return True, 0, None
+
+        expected_prev = "GENESIS_BLOCK_0000000000000000000000000000000000000000000000000000"
+        for idx, entry in enumerate(records):
+            prev_hash = entry.get("prev_hash")
+            entry_hash = entry.get("entry_hash")
+
+            if prev_hash != expected_prev:
+                return (
+                    False,
+                    len(records),
+                    f"Chain break at record {idx}: expected prev {expected_prev}, got {prev_hash}",
+                )
+
+            # Recompute entry hash
+            payload_copy = {k: v for k, v in entry.items() if k != "entry_hash"}
+            serialized = json.dumps(payload_copy, sort_keys=True)
+            recalculated = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+            if recalculated != entry_hash:
+                return (
+                    False,
+                    len(records),
+                    f"Tampered hash at record {idx}: recorded {entry_hash}, computed {recalculated}",
+                )
+
+            expected_prev = entry_hash
+
+        return True, len(records), None
+
 
 audit_logger = AuditLogger()

@@ -882,5 +882,137 @@ def status() -> None:
     console.print(table)
 
 
+@app.command()
+def report(
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        "-r",
+        help="Run ID to generate report for (defaults to latest/full system)",
+    ),
+    output_dir: Optional[str] = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Output directory to save Markdown & HTML reports",
+    ),
+) -> None:
+    """Generates comprehensive Markdown and HTML security audit reports (Phase 8)."""
+    from sentinel.core.reporter import security_reporter
+
+    out_path = Path(output_dir).resolve() if output_dir else None
+    with console.status(
+        "[yellow]Compiling security audit report & verification evidence...[/yellow]"
+    ):
+        paths = security_reporter.export_report(run_id=run_id, output_dir=out_path)
+
+    console.print(
+        Panel(
+            f"[bold green]Security Audit Report Generated Successfully![/bold green]\n\n"
+            f"[bold]Markdown Report:[/bold] {paths['markdown']}\n"
+            f"[bold]HTML Report:[/bold] {paths['html']}\n\n"
+            f"[cyan]Includes executive findings, contextual prioritization (RQ1), digital twin attack paths (RQ2), "
+            f"counterfactual interventions (RQ3), game simulation (Phase 7), and cryptographic audit proof.[/cyan]",
+            title="Sentinel Security Report (Phase 8)",
+            border_style="green",
+        )
+    )
+
+
+@app.command()
+def run(
+    target: str = typer.Option(
+        "http://localhost:8080",
+        "--target",
+        "-t",
+        help="Target URL or IP (must be within scope.yaml)",
+    ),
+    repo: Optional[str] = typer.Option(
+        None,
+        "--repo",
+        help="Path to target source code repository for remediation (default: lab/sentinel-lab-app)",
+    ),
+    auto_fix: bool = typer.Option(
+        True,
+        "--auto-fix/--no-auto-fix",
+        help="Whether to automatically generate candidate patches in sandbox",
+    ),
+    auto_verify: bool = typer.Option(
+        True,
+        "--auto-verify/--no-auto-verify",
+        help="Whether to run 4-stage deterministic verification and auto-merge verified fixes",
+    ),
+) -> None:
+    """Executes the full closed-loop defensive cycle: Scan -> Prioritize -> Twin -> Fix -> Verify -> Report."""
+    from sentinel.core.orchestrator import sentinel_orchestrator
+
+    repo_path = Path(repo).resolve() if repo else None
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]VAPT-GPT Sentinel Autonomous Closed-Loop Security Cycle[/bold cyan]\n"
+            f"[bold]Target:[/bold] {target} | [bold]Auto-Fix:[/bold] {auto_fix} | [bold]Auto-Verify:[/bold] {auto_verify}\n"
+            f"[bold]Safety Rule:[/bold] Git sandbox feature branches; deterministic verification decides acceptance",
+            border_style="cyan",
+        )
+    )
+
+    with console.status("[yellow]Executing autonomous defensive pipeline...[/yellow]"):
+        result = sentinel_orchestrator.run_pipeline(
+            target=target,
+            repo_dir=repo_path,
+            auto_fix=auto_fix,
+            auto_verify=auto_verify,
+        )
+
+    console.print(
+        Panel(
+            f"[bold green]Autonomous Defensive Pipeline Completed![/bold green]\n\n"
+            f"[bold]Run ID:[/bold] {result.run_id}\n"
+            f"[bold]System Risk Score:[/bold] {result.initial_system_risk:.1f} -> [bold green]{result.residual_system_risk:.1f} / 100[/bold green]\n"
+            f"[bold]Total Findings:[/bold] {result.total_findings_count}\n"
+            f"[bold]Remediations Verified & Merged:[/bold] [bold green]{result.remediated_count}[/bold green]\n"
+            f"[bold]Remediations Rejected & Rolled Back:[/bold] {result.rejected_count}\n"
+            f"[bold]Gated Findings (Human Review Required):[/bold] {result.gated_count}\n"
+            f"[bold]Multi-Agent Simulation:[/bold] {result.simulation_winner}\n\n"
+            f"[bold]Audit Report (Markdown):[/bold] {result.report_paths.get('markdown', '')}\n"
+            f"[bold]Audit Report (HTML):[/bold] {result.report_paths.get('html', '')}",
+            title="Closed-Loop Execution Summary",
+            border_style="green",
+        )
+    )
+
+
+@app.command()
+def dashboard(
+    port: int = typer.Option(
+        8501,
+        "--port",
+        "-p",
+        help="Port to run Streamlit dashboard on (default: 8501)",
+    ),
+) -> None:
+    """Launches the interactive Streamlit Security Operations & Digital Twin Dashboard."""
+    import subprocess
+    import sys
+
+    app_path = Path(__file__).parent.parent / "dashboard" / "app.py"
+    console.print(
+        f"[bold cyan]Launching Streamlit Dashboard on http://localhost:{port}...[/bold cyan]"
+    )
+    cmd = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(app_path),
+        "--server.port",
+        str(port),
+        "--server.headless",
+        "true",
+    ]
+    subprocess.run(cmd)
+
+
 if __name__ == "__main__":
     app()

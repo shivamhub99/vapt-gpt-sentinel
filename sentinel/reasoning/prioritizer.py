@@ -132,5 +132,17 @@ class Prioritizer:
         scored.sort(key=lambda item: (item[1].final_score, item[0].id), reverse=True)
         return scored
 
+    def rank_findings(self, findings: List[Finding]) -> List[Finding]:
+        """Convenience method returning findings sorted descending by contextual risk score."""
+        ranked_tuples = self.rank_contextual(findings, generate_explanations=False)
+        result = []
+        for f, rs in ranked_tuples:
+            f.contextual_score = rs.final_score
+            if rs.explanation:
+                f.threat_context = rs.explanation
+            result.append(f)
+        return result
+
 
 prioritizer = Prioritizer()
+contextual_prioritizer = prioritizer

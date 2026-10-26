@@ -70,6 +70,18 @@ class Finding(BaseModel):
     status: FindingStatus = Field(
         default=FindingStatus.OPEN, description="Current remediation state"
     )
+    contextual_score: Optional[float] = Field(
+        default=None, ge=0.0, le=100.0, description="Calculated multi-factor contextual risk score"
+    )
+    threat_context: Optional[str] = Field(
+        default=None, description="LLM qualitative threat rationale and exposure narrative"
+    )
+    description: Optional[str] = Field(
+        default=None, description="Detailed vulnerability description"
+    )
+    exploitability: Optional[str] = Field(
+        default=None, description="Attack surface exposure details"
+    )
     first_seen: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp when finding was first discovered",
