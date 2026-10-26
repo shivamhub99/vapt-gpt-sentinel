@@ -755,6 +755,105 @@ def twin_counterfactual(
         console.print(tradeoff_table)
 
 
+@twin_app.command(name="simulate")
+def twin_simulate(
+    run_id: Optional[str] = typer.Option(
+        None,
+        "--run-id",
+        "-r",
+        help="Run ID to build digital twin for simulation (defaults to latest scan)",
+    ),
+    max_rounds: int = typer.Option(
+        5,
+        "--max-rounds",
+        "-m",
+        help="Maximum game rounds to execute (default: 5)",
+    ),
+    seed: int = typer.Option(
+        42,
+        "--seed",
+        "-s",
+        help="Deterministic random seed for reproducibility (default: 42)",
+    ),
+) -> None:
+    """Runs a multi-agent Red/Blue/Judge game simulation on the in-memory Digital Twin."""
+    from sentinel.agents.simulation import simulation_orchestrator
+    from sentinel.twin.builder import twin_builder
+
+    target_run_id, findings = _get_target_run_findings(run_id)
+    twin = twin_builder.build(findings)
+
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Multi-Agent Digital Twin Simulation (Phase 7)[/bold cyan]\n"
+            f"[bold]Run ID:[/bold] {target_run_id or 'baseline'} | [bold]Max Rounds:[/bold] {max_rounds} | [bold]Seed:[/bold] {seed}\n"
+            f"[bold]Principle:[/bold] In-memory graph game, 0 network packets transmitted",
+            border_style="cyan",
+        )
+    )
+
+    with console.status(
+        "[yellow]Executing multi-agent Red/Blue/Judge turn-based game loop...[/yellow]"
+    ):
+        result = simulation_orchestrator.simulate(twin, max_rounds=max_rounds, seed=seed)
+
+    # Round results table
+    table = Table(
+        title=f"Game Round Progression ({len(result.rounds)} rounds executed)",
+        show_header=True,
+        header_style="bold magenta",
+    )
+    table.add_column("Round", justify="center", style="bold")
+    table.add_column("Red Move (Attacker Action)", style="bold red")
+    table.add_column("Blue Countermeasure", style="bold green")
+    table.add_column("Risk", justify="center")
+    table.add_column("Delta", justify="right", style="bold cyan")
+    table.add_column("Paths Left", justify="center")
+    table.add_column("Displacement", style="yellow")
+
+    for r in result.rounds:
+        red_text = (
+            f"Target: {r.red_move.targeted_crown_jewel} (Util: {r.red_move.attack_utility:.2f})"
+            if r.red_move
+            else "None"
+        )
+        blue_text = (
+            f"{r.blue_move.action_type} on {r.blue_move.target} (Cost: {r.blue_move.operational_cost:.1f})"
+            if r.blue_move
+            else "No Defense"
+        )
+        disp_text = (
+            f"[bold yellow]-> {r.displaced_to}[/bold yellow]"
+            if r.path_displaced
+            else "[dim]None[/dim]"
+        )
+        table.add_row(
+            str(r.round_number),
+            red_text,
+            blue_text,
+            f"{r.pre_round_risk:.1f} -> {r.post_round_risk:.1f}",
+            f"-{r.risk_delta:.1f}",
+            str(r.paths_remaining),
+            disp_text,
+        )
+
+    console.print(table)
+
+    winner_style = "green" if "BLUE" in result.winner else "red"
+    console.print(
+        Panel(
+            f"[bold {winner_style}]Simulation Result: {result.winner}[/bold {winner_style}]\n\n"
+            f"[bold]Initial System Risk:[/bold] {result.initial_risk_score:.1f} -> [bold {winner_style}]Final Risk: {result.final_risk_score:.1f}[/bold {winner_style}]\n"
+            f"[bold]Total Risk Reduction:[/bold] [bold {winner_style}]-{result.total_risk_reduction_pct:.1f}%[/bold {winner_style}]\n"
+            f"[bold]Total Defensive Operational Cost:[/bold] {result.total_blue_cost:.1f}\n"
+            f"[bold]Termination Cause:[/bold] {result.stop_reason}\n\n"
+            f"[dim]{result.executive_summary}[/dim]",
+            title="Multi-Agent Game Outcomes",
+            border_style=winner_style,
+        )
+    )
+
+
 @app.command()
 def status() -> None:
     """Displays framework status, scope boundaries, and running lab targets."""
